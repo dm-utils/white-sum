@@ -119,7 +119,7 @@ godot --headless --path . -s res://tools/verify_puzzles.gd -- --file=build/pract
 ## Git and CI
 
 - `develop` is the working branch; every push to `develop` runs CI and (from phase 1b) publishes the play version at
-  https://play.whitesum.steefbeest.nl. `main` is protected and updated through pull requests only.
+  https://play.white-sum.steefbeest.nl. `main` is protected and updated through pull requests only.
 - `.github/workflows/ci.yml` comes from the kit template (`addons/white_kit/templates/ci.yml`).
 - Branch names: `feature/<description>`, `fix/<description>`, `chore/<description>`.
 - Commit messages in English, imperative, short subject line.

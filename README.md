@@ -7,7 +7,7 @@ as few moves as possible.
 Status: phase 1 built (rules, solver, generator, tools, a pool of 40 practice sets in three levels, the screen and the
 web version). Selecting a tile shows the sums of its row and column. No daily puzzle yet.
 
-- Play version: https://play.whitesum.steefbeest.nl
+- Play version: https://play.white-sum.steefbeest.nl
 - Design: `docs/design.md`, decisions in `docs/adr/`, terms in `docs/glossary.md`, rules for code and data in
   `docs/conventions.md`.
 

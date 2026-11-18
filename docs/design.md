@@ -41,7 +41,7 @@ In scope:
   left run totals out of phase 1.
 - Moves and par shown simply (3.1, `FINAL_ONLY`); no strict scoring.
 - Dutch and English.
-- Web version on GitHub Pages at https://play.whitesum.steefbeest.nl, usable in portrait on a phone and on a desktop
+- Web version on GitHub Pages at https://play.white-sum.steefbeest.nl, usable in portrait on a phone and on a desktop
   (maximum content width, kit 0.3.0).
 - The rules engine, generator and solver needed to fill the pool (section 5), with a trial (5.7).
 
@@ -853,7 +853,7 @@ wide 1900x1000 --practice --level=2
 seam).
 
 - Export preset `exclude_filter="tests/*,tools/*,addons/white_kit/tests/*,addons/white_kit/tools/*"`.
-- On `develop` the Web build is published to https://play.whitesum.steefbeest.nl (custom domain: Pages setting plus a
+- On `develop` the Web build is published to https://play.white-sum.steefbeest.nl (custom domain: Pages setting plus a
   DNS record in the existing zone, as for the other games; no CNAME file, the Pages source is the workflow).
 - No Android or Windows builds in phase 1. No `LICENSE` file (all rights reserved).
 
@@ -931,7 +931,7 @@ UI and deployment (tests, screenshots or manual)
   they equal `run_totals_at`, never cover a tile, and vanish with the selection and during animations.
 - On 1280x720 and 1900x1000 the screen is a centred column at most 720 wide with the board as large as on a phone
   (`desktop` and `wide` shots); on 720x1280 and 360x640 it fills the width.
-- CI on `develop` green (pin, kit tests, game tests, screenshots); https://play.whitesum.steefbeest.nl loads and plays
+- CI on `develop` green (pin, kit tests, game tests, screenshots); https://play.white-sum.steefbeest.nl loads and plays
   on a phone and on a PC.
 
 ### 13.2 [later] Phase 2
