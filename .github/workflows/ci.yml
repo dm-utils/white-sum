@@ -1,5 +1,5 @@
-# CI: kit pin, kit tests and game tests on develop/main, superseded runs cancelled. Screenshots, the Web export and the
-# play version on GitHub Pages (play.whitesum.steefbeest.nl) follow in phase 1b.
+# CI: tests and the web build on develop/main, superseded runs cancelled. The release web build of develop is the
+# play version on GitHub Pages (play.whitesum.steefbeest.nl). Debug screenshots are a build artifact.
 name: CI
 
 on:
@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 env:
-  MIN_CHECKS: "116" # the number of checks of the game's own tests, so skipped tests fail the build
+  MIN_CHECKS: "225" # the number of checks of the game's own tests, so skipped tests fail the build
 
 jobs:
   build:
@@ -47,3 +47,56 @@ jobs:
 
       - name: Game tests
         run: timeout 300 godot --headless --path . res://tests/run_tests.tscn -- --min-checks=${{ env.MIN_CHECKS }}
+
+      - name: Debug screenshots (tools/shots.txt)
+        if: hashFiles('tools/shots.txt') != ''
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/dev/null
+          addons/white_kit/tools/shots.sh run . tools/shots.txt build/shots
+
+      - uses: actions/upload-artifact@v7
+        if: always() && hashFiles('tools/shots.txt') != ''
+        with:
+          name: shots
+          path: build/shots
+          retention-days: 7
+
+      - name: Puzzles left (warn when fewer than 14 days are built ahead)
+        if: hashFiles('data/daily.json') != ''
+        run: |
+          left=$(python3 -I -c "import json,datetime; d=json.load(open('data/daily.json')); t=datetime.date.today().isoformat(); print(sum(1 for k in d if k>=t))")
+          echo "Daily puzzles built from today on: $left" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$left" -lt 14 ]; then echo "::warning::only $left days of daily puzzles left; run tools/build_puzzles.gd"; fi
+
+      - name: Export Web
+        run: |
+          mkdir -p build/web && touch build/.gdignore
+          timeout 600 godot --headless --path . --export-release "Web" build/web/index.html
+          ls -la build/web | awk '{print "    " $5 "  " $9}' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web
+          path: build/web
+          retention-days: 7
+
+      - name: Play version for GitHub Pages (develop only)
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+  # GitHub Pages: free for public repos, files up to 100 MB
+  pages:
+    needs: build
+    if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
