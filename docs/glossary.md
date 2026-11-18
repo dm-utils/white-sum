@@ -50,6 +50,7 @@ series (attempt, record, count mode, progress file, seed text, tile view, ...) a
 | Row ten | A row run with total 10. |
 | Run | A row run or a column run. |
 | Run totals at a cell (`SumBoard.run_totals_at`) | The totals of the row run and the column run through one cell; the sums shown when a tile is selected (phase 1b). |
+| Selection totals | The two total pills (and bands) the board view shows for the selected tile: the sum of its row run and of its column run (`SumBoardView.selection_marks`). |
 | Settle | Let every tile fall straight down in its column. |
 | Share line | [later] One line with the day's counts and pars, e.g. `White Sum #12 · 4/6/9 moves (par 3/5/7)`. |
 | Short run | A run whose total is smaller than 10. Does not vanish. |
@@ -62,6 +63,7 @@ series (attempt, record, count mode, progress file, seed text, tile view, ...) a
 | Ten | A run whose total is exactly 10. All tens of a board vanish together in one wave. |
 | Tile | A square with a value from 1 to 5, shown as a numeral. |
 | Total | The sum of the values in a run. |
+| Total pill | The small rounded label with a run's total, placed in the empty cell after the run (or on the edge seam). |
 | Trial | The measurement run (`tools/measure.gd`): phase 1 checks P1-P4, [later] full gates before date binding. |
 | Upper bound (`upper`, `U`) | Number of reverse steps the generator used; the length of a known solution and a maximum for par. |
 | View step | Kit step for the board view (`move` or `vanish`); `SumBoardView.to_view_steps` converts the traced step into these. |

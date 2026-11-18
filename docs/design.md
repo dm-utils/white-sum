@@ -1,7 +1,7 @@
 # White Sum - design
 
-Status: phase 1a built (rules, solver, generator, tools, pool; trial in 5.9); phase 1b (screen, play version) designed,
-not built. Later phases are designed in outline and marked **[later]**; they are not built in phase 1.
+Status: phase 1a built (rules, solver, generator, tools, pool; trial in 5.9); phase 1b built (screen, board view, play
+version; deviations in 14.3). Later phases are designed in outline and marked **[later]**; they are not built in phase 1.
 This document describes the game as it must be built. Decisions with their trade-offs are in `docs/adr/`; terms are
 defined in `docs/glossary.md`; code and test rules are in `docs/conventions.md`.
 
@@ -36,6 +36,9 @@ In scope:
 - Controls for touch, mouse and keyboard (10.4).
 - Animations of swap, slide, fall, vanish and chain (10.2).
 - Readability of numerals and runs (10.1); a calm, flat, dark look in the series style.
+- Run totals of the selected tile (10.1): when a tile is selected (tap-tap or keyboard grab) the screen shows the sum of
+  the touching row run and column run through it. Decision of the owner, 2026-11-18; the first version of this design
+  left run totals out of phase 1.
 - Moves and par shown simply (3.1, `FINAL_ONLY`); no strict scoring.
 - Dutch and English.
 - Web version on GitHub Pages at https://play.whitesum.steefbeest.nl, usable in portrait on a phone and on a desktop
@@ -44,7 +47,8 @@ In scope:
 
 Out of scope for phase 1 (designed below where marked **[later]**): binding puzzles to dates, the first day and puzzle
 numbers, the share line, daily counting (every move counts), saved daily progress, the full trial with strict gates,
-accounts, leaderboards, a server, art, sound, Android/Windows builds, a puzzle archive, run-total helpers on screen.
+accounts, leaderboards, a server, art, sound, Android/Windows builds, a puzzle archive, run totals other than those of
+the selected tile (for example for every run at once, or while dragging).
 
 ### 1.2 Later phases
 
@@ -727,12 +731,18 @@ Abstract, flat, dark and calm, in the series style. Numerals, not pips (ADR 0005
 | Numeral | The value as a digit, `#F2F4F8`, font size `0.52 * cell * scale`, default theme font, centred horizontally and vertically on the tile; alpha follows the tile. |
 | Links | None. Runs are straight lines of touching tiles and read from the gaps; no bars are drawn. |
 | Selection / cursor | Kit defaults: 4 px outline in `WhiteTheme.ACCENT`, solid for selection, dashed for the cursor. |
+| Run totals of the selection | While a tile is selected and no animation runs: the row run and the column run through it get a faint band (white at 10% alpha, rounded, 4% of a cell beyond the end tiles) and one **total pill** each: a rounded pill of 0.74 x 0.44 cells, fill `#1B1F26`, 2 px line (white at 55%), the total as digits (`#E6E9EF`, font 0.30 cell). The row's pill sits in the empty cell right after the run (a maximal run is always followed by an empty cell or the edge); when the run reaches the right edge it goes to the empty cell before the run; when the run spans the full width it sits on the right seam of the end tile. The column's pill sits in the empty cell above the stack, or on the top seam of the top tile when the stack reaches the top of the board. No colour for over or short: the player compares the number with 10 themselves. The totals describe the shown board and disappear with the selection (a move, a deselect, Esc) and while an animation runs. |
 
 Look-alike risk (ADR 0005): no fruit, sweets, gems, coins or dice faces; no sparkles, particles, flashes, screen shake,
 combo texts or score pop-ups; no lives, boosters or level maps. A vanish is a quiet fade.
 
 All values are members or constants at the top of `ui/board_view.gd`, so they can be tuned after the look-and-feel
 test without touching logic.
+
+`SumBoardView.run_marks(board, state, cell)` (static, tested) returns a dictionary with `row` and `col` (cells of the
+runs), `row_total`, `col_total`, `row_anchor` and `col_anchor` (pill centres in cell units, `y` up), or an empty
+dictionary for an empty cell; `selection_marks()` applies it to the selected cell of the shown state. The totals equal
+`SumBoard.run_totals_at` (tested on pool boards).
 
 ### 10.2 Animation
 
@@ -785,7 +795,8 @@ Restart, Best route (when solved), Next.
 ### 10.4 Input
 
 `SumBoardView extends WhiteTileView` with `input_mode = CELL_MOVES`; everything as White Tally 10.4 (swipe on a tile,
-tap-tap, keyboard cursor and grab), provided by the kit. `_resolve_cell_move(cell, dir)` returns
+tap-tap, keyboard cursor and grab), provided by the kit. A swipe shows no totals (it is a move at once); tap-tap and the
+keyboard grab select a tile and show its totals (10.1). `_resolve_cell_move(cell, dir)` returns
 `board.canonical(shown(), cell * 4 + dir)`. Debug: kit screenshot mode plus `--sel` and `--safe`.
 
 ### 10.5 Messages
@@ -827,13 +838,19 @@ No moves, no time, no board.
 easy 720x1280 --practice --level=0
 medium 720x1280 --practice --level=1 --lang=en
 hard 720x1280 --practice --level=2
-selected 720x1280 --practice --level=1 --sel=0
+selected 720x1280 --practice --level=1 --sel=7
+selected-edge 720x1280 --practice --level=1 --sel=8
+selected-hard 720x1280 --practice --level=2 --sel=13
+midgame 720x1280 --practice --level=2 --keys=RA2LD5
 solved 720x1280 --practice --level=0 --best
 phone-safe-area 720x1280 --practice --level=1 --safe=40,80,40,60
-small 360x640 --practice --level=1
+small 360x640 --practice --level=1 --sel=7
 desktop 1280x720 --practice --level=1
 wide 1900x1000 --practice --level=2
 ```
+
+`selected` shows both totals in empty cells, `selected-edge` a column reaching the top of the board (pill on the
+seam).
 
 - Export preset `exclude_filter="tests/*,tools/*,addons/white_kit/tests/*,addons/white_kit/tools/*"`.
 - On `develop` the Web build is published to https://play.whitesum.steefbeest.nl (custom domain: Pages setting plus a
@@ -846,7 +863,7 @@ wide 1900x1000 --practice --level=2
 |---|---|
 | 1 | Look and feel: rules, generator, solver, precomputed pool in three levels, controls, animations, readability, NL/EN, play version. |
 | 2 | Daily puzzle: three puzzles per Dutch day, first day and numbers, share line, `EVERY_MOVE`, saved daily progress, full trial (5.8). |
-| 3 | Tuning from play tests: levels, bands, scoring, par visibility, run-total helpers, dead-end reporting, possibly another target. |
+| 3 | Tuning from play tests: levels, bands, scoring, par visibility, more run-total helpers, dead-end reporting, possibly another target. |
 | 4 | Version 1 finish: look, sound, statistics, Android. |
 | 5 | st33f-engine: daily seed or puzzle from the server, results, leaderboards, friends, accounts (owner approval for players aged 10-15). |
 | 6 | Competitions; player feedback triage. |
@@ -910,6 +927,8 @@ UI and deployment (tests, screenshots or manual)
 - Counter reads `count_final`, par is shown, solved message with count, par and clock.
 - Dead-end message on Example 6, gone after undo.
 - Dutch and English complete; the language choice survives a reload.
+- With a tile selected (tap-tap or keyboard grab) the totals of its row run and column run are shown at the run ends;
+  they equal `run_totals_at`, never cover a tile, and vanish with the selection and during animations.
 - On 1280x720 and 1900x1000 the screen is a centred column at most 720 wide with the board as large as on a phone
   (`desktop` and `wide` shots); on 720x1280 and 360x640 it fills the width.
 - CI on `develop` green (pin, kit tests, game tests, screenshots); https://play.whitesum.steefbeest.nl loads and plays
@@ -952,13 +971,28 @@ Needs the kit tag `v0.3.0` (kit design 14).
    example boards, `to_view_steps`, max width.
 4. `tools/shots.txt` and the full CI template; Pages on `develop`.
 
-Done when: 13.1 is met (including the play version on the custom domain).
+Done when: 13.1 is met (including the play version on the custom domain). Built 2026-11-18, see 14.3.
+
+### 14.3 Phase 1b: as built
+
+Kit `v0.3.0` (764 kit checks), 225 game checks. `ui/main.gd`, `ui/main.tscn`, `ui/board_view.gd`, `ui/strings.gd`,
+`tests/ui_tests.gd`, `tools/shots.txt` and the full kit CI template (screenshots, Web export, Pages) are in.
+
+Deviations and additions:
+
+- Selection totals (10.1) were added by decision of the owner; the design had kept them out of phase 1. The look (band
+  and pill, anchor rules) is the developer's choice within that decision and can be tuned in the constants at the top of
+  `ui/board_view.gd`.
+- `project.godot` got `run/main_scene` (needed for the screenshot scenarios).
+- No links are drawn between tiles; the `_draw_links` hook draws the bands and total pills of the selection, because it
+  is the only hook between the tile bodies and the numerals.
+- The screenshot scenarios `selected-edge`, `selected-hard` and `midgame` were added to the list of section 11.
 
 ## 15. Open points
 
-- Phase 1 look-and-feel test: is the gentle colour ramp helpful or noise; do players want run totals on screen (for
-  example a small total at the end of a run while dragging)? Not built in phase 1 (out of scope); decided after the
-  test.
+- Phase 1 look-and-feel test: is the gentle colour ramp helpful or noise; are the totals of the selected tile enough,
+  or do players want run totals for every run, or while dragging? Selection totals are built (10.1); more is decided
+  after the test.
 - Phase 2: first day, final scoring rules, full trial gates.
 - Later: whether value 6 or another target (for example 12) gives more depth; whether dead ends beyond "no move left"
   are reported.
