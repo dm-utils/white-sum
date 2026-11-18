@@ -151,7 +151,8 @@ func _own_examples() -> void:
 	_check.call(over.tens(over.start).is_empty() and over.over_runs(over.start) == 1, "an over row vanishes in no part")
 	var join: SumBoard = _mk(["...", "5.5"])
 	_check.call(join.is_stable(join.start), "5 and 5 with a gap are two short runs")
-	_check.call(join.is_solved(join.step(join.start, join.decode_move("RA1"))), "sliding closes the gap and the ten vanishes")
+	_check.call(join.is_solved(join.step(join.start, join.decode_move("RA1"))),
+			"sliding closes the gap and the ten vanishes")
 	var two: SumBoard = _mk(["5.5.", "5.5."])
 	_check.call(two.resolve(two.start) == two.from_rows(PackedStringArray(["....", "...."])),
 			"two column tens vanish in one wave")

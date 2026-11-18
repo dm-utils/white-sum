@@ -187,8 +187,8 @@ func _traced() -> void:
 			"swap, vanish, fall in order")
 	var u := mk(["3.", "2.", "4."])
 	var f := u.step_traced(u.start, u.decode_move("RA2"))
-	_check.call(f.steps[0].kind == "slide" and f.steps[1].kind == "fall" and f.state == u.step(u.start, u.decode_move("RA2")),
-			"slide then fall, traced state equals step")
+	_check.call(f.steps[0].kind == "slide" and f.steps[1].kind == "fall"
+			and f.state == u.step(u.start, u.decode_move("RA2")), "slide then fall, traced state equals step")
 
 
 func _invariants() -> void:

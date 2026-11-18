@@ -46,8 +46,9 @@ func _init() -> void:
 	if only < 0:
 		var inc: bool = medians[0] < medians[1] and medians[1] < medians[2]
 		print("P2 median par strictly increasing %s (%s)" % ["ok" if inc else "FAIL", medians])
-		print("P3 estimate for 40 sets: %.0f s on one process, %.0f s on 3, %.0f s on 8 (from %.0f s per %d seeds x 3 levels)" % [
-			total_s * 40.0 / seeds, total_s * 40.0 / seeds / 3.0, total_s * 40.0 / seeds / 8.0, total_s, seeds])
+		var one := total_s * 40.0 / seeds
+		print("P3 estimate for 40 sets: %.0f s on 1 process, %.0f s on 3, %.0f s on 8 (%.0f s per %d seeds x 3 levels)" % [
+			one, one / 3.0, one / 8.0, total_s, seeds])
 		ok = ok and inc
 	print("trial " + ("ok" if ok else "FAILED"))
 	quit(0 if ok else 1)
