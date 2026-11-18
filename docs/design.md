@@ -1,7 +1,7 @@
 # White Sum - design
 
-Status: phase 1 (look and feel) designed, not built. Later phases are designed in outline and marked **[later]**;
-they are not built in phase 1.
+Status: phase 1a built (rules, solver, generator, tools, pool; trial in 5.9); phase 1b (screen, play version) designed,
+not built. Later phases are designed in outline and marked **[later]**; they are not built in phase 1.
 This document describes the game as it must be built. Decisions with their trade-offs are in `docs/adr/`; terms are
 defined in `docs/glossary.md`; code and test rules are in `docs/conventions.md`.
 
@@ -355,12 +355,17 @@ func row_runs(state) -> Array[PackedInt32Array]         # every row run, cells l
 func col_runs(state) -> Array[PackedInt32Array]         # every column run, cells bottom up, columns left first
 func tens(state) -> PackedInt32Array                    # sorted union of the cells of all tens
 func run_total(state, cells: PackedInt32Array) -> int
+func row_run_of(state, i: int) -> PackedInt32Array      # cells of the row run through cell i, empty if i is empty
+func col_run_of(state, i: int) -> PackedInt32Array      # cells of the column run through cell i, empty if i is empty
+func run_totals_at(state, i: int) -> Vector2i           # (row total, column total) through cell i, (0, 0) if empty
 func is_stable(state) -> bool                           # settled and tens() empty
 func over_runs(state) -> int                            # number of row and column runs with total > TARGET
 func is_dead_end(state) -> bool
 func count_tiles(state) -> int
 ```
 
+- `row_run_of`, `col_run_of` and `run_totals_at` are an addition for the selection totals the owner wants in phase 1b
+  (the sums of the row and the column through the selected tile); `SumBoardView` reads them for the shown state.
 - `canonical`, `legal_moves`, `_move_only`, `settle`, `apply`, `encode_move`, `decode_move`, `is_dead_end` and
   `count_tiles` are White Tally's code unchanged (tile values 1-5 instead of 2-4 make no difference to them).
 - `step()` (fast): `_move_only`, then waves. Per wave: settle only the touched columns (White Tally's `ymin` logic),
@@ -545,8 +550,68 @@ Before puzzles are bound to dates: 200 seeds per level and M3 (build time of 60 
 
 ### 5.9 Trial results
 
-To be filled in by the developer after the phase 1 trial: settings used (changes from section 4), M1, the M2 table per
-level, P1-P4, and findings for later phases.
+Phase 1a, 2026-11-18, Godot 4.7.2, kit `v0.2.0`, one desktop (8 cores, shared with other work; at most 3 Godot
+processes of this project at a time). Seeds `white-sum-trial|<n>|<level>`, `n = 0 .. 49`.
+
+**Settings.** The starting values of section 4 passed P1-P3 unchanged; nothing was adjusted. Implementation of the
+level table: `SumGenerator.LEVELS` (keys `col` = column ten chance, `row_k`, `col_k`, `over`, `beam`).
+
+**M1** (6x6, 14-18 random stable tiles): `step()` 82 000 calls per second (limit 30 000, no tuning needed; the simple
+variant of 5.3 is used: all row runs from the lowest changed row, column runs of touched columns); 26.8 legal moves
+per position on average; solver 2 500 expansions per second (hard pool puzzle, 20 000 expansions). The exhaustive
+iteration of a par-6 hard puzzle therefore takes tens of seconds.
+
+**M2** (50 seeds per level):
+
+| | Easy 5x5 | Medium 6x6 | Hard 6x6 |
+|---|---|---|---|
+| Non-fallback puzzles | 50 | 50 | 50 |
+| Candidates tried (median / max) | 1 / 4 | 3 / 17 | 57 / 417 |
+| Tiles at start (median) | 7 | 13 | 20 |
+| `U` (median) | 3 | 5 | 8 |
+| Par (median) | 2 | 4 | 6 |
+| Par spread | 2: 33, 3: 17 | 4: 45, 5: 5 | 6: 50 |
+| Exact par | 50 of 50 | 50 of 50 | 50 of 50 |
+| Stored solution has a chain | 13 of 50 | 29 of 50 | 34 of 50 |
+| Stored solution has a cross | 0 of 50 | 0 of 50 | 0 of 50 |
+| Build time per puzzle (median / max) | < 0.1 s / < 0.1 s | 0.2 s / 27 s | 50 s / 230 s |
+
+Sum of the build times of the 150 puzzles: 3 360 s on one process.
+
+**Checks.**
+
+| Check | Result |
+|---|---|
+| P1 | Met: 50 of 50 non-fallback on every level (need 40). |
+| P2 | Met: median par 2 < 4 < 6. |
+| P3 | Met: the 40-set pool took 28 minutes wall-clock on 2 processes (20 sets each, other work running on the machine); estimated 19 minutes on 3 and 7 on 8 processes from the summed build times. Limit 2 hours. |
+| P4 | Reported: exact 100% on all three levels (target easy and medium 100%, hard at least 50%). |
+
+**Pool** (`data/practice.json`, 40 sets): all 120 puzzles non-fallback and exact; easy par 2 or 3 (median 2, 5-9
+tiles), medium par 4 or 5 (median 4, 9-19 tiles), hard par 6 only (median 6, 14-26 tiles). `tools/verify_puzzles.gd`
+re-solved all 40 sets without a mismatch.
+
+**Findings for later phases.**
+
+- Crosses: no stored solution contains a cross. By construction every insertion step makes exactly one ten (5.4), and
+  the stored line is the generator's line or a shorter line found by the beam or the solver. Crosses (Example 2) still
+  occur in play, but the generator does not aim for them. A "cross insertion" (two tens that share a tile) would need
+  an architect decision.
+- Hard par is always 6: the band 6-7 holds only the lower value. A hard puzzle with `U` 8 or 9 is usually solved in
+  6, so the bounded and exact lines coincide. Spread inside a level is narrow (easy 2-3, medium 4-5).
+- Hard is the only costly level (median 50 s, worst 230 s per puzzle). Exact par holds for all of it at budget
+  1 000 000; the gates of 5.8 (hard exact at least 80%, p95 at most 120 s) look reachable, p95 is not measured yet.
+- Easy puzzles are small (median 7 tiles, 5 at the smallest); the three-values and one-over-run minimums hold.
+
+**Deviations from the design text.**
+
+- Fallback candidates are those that reach the exact search (5.6, last line); a candidate rejected by the beam
+  prefilter or by `U` below the band minimum is never a fallback. A candidate that no step produces gives the empty
+  fallback (`par` 0), as in White Tally. No fallback occurred in the trial or the pool.
+- A row ten insertion also checks the two cells beside the new run directly (5.4 step 4); `_is_ten` then confirms it.
+- `SumGenerator.ten_values` is public so the tests can call it; the unit tests draw one easy and one medium puzzle and
+  leave the hard one to the pool tests (35 s).
+- `tools/measure.gd` has `--m1-only` and prints chain and cross shares; run the levels in separate processes.
 
 ## 6. Precomputed puzzles
 
@@ -873,7 +938,7 @@ Does not wait for kit 0.3.0.
 5. `tools/build_puzzles.gd`, `tools/verify_puzzles.gd`; build the pool in parallel (6.4), verify, commit
    `data/practice.json`; pool tests.
 
-Done when: all tests green in CI, P1-P3 met, P4 reported, the pool verified.
+Done when: all tests green in CI, P1-P3 met, P4 reported, the pool verified. Done 2026-11-18 (5.9).
 
 ### 14.2 Phase 1b: screen, board view, play version (kit `v0.3.0`)
 

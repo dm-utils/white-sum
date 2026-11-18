@@ -1,6 +1,7 @@
 extends SceneTree
 ## Phase 1 trial (design 5.7).
-##   godot --headless --path . -s res://tools/measure.gd -- [--seeds=50] [--level=N] [--skip-m1] [--from=0] [--budget=N]
+##   godot --headless --path . -s res://tools/measure.gd -- [--seeds=50] [--level=N] [--skip-m1] [--m1-only] [--from=0]
+##       [--budget=N]
 ## M1: step() and solver throughput. M2: per level over the trial seeds, prints the figures and checks P1, P2, P3.
 ## Run the levels in separate processes (at most three at a time) with --level=N --skip-m1.
 
@@ -11,6 +12,7 @@ func _init() -> void:
 	var seeds := 50
 	var only := -1
 	var m1 := true
+	var m1_only := false
 	var first := 0
 	var budget := -1
 	for a in OS.get_cmdline_user_args():
@@ -24,8 +26,13 @@ func _init() -> void:
 			budget = int(a.get_slice("=", 1))
 		elif a == "--skip-m1":
 			m1 = false
+		elif a == "--m1-only":
+			m1_only = true
 	if m1:
 		_m1()
+	if m1_only:
+		quit(0)
+		return
 	var medians := []
 	var total_s := 0.0
 	var ok := true
@@ -67,10 +74,11 @@ func _m1() -> void:
 				n += 1
 	print("M1 step(): %.0f per second (6x6, 14-18 tiles)" % (n / ((Time.get_ticks_usec() - t0) / 1e6)))
 	print("M1 legal moves per position: %.1f (6x6, 14-18 tiles)" % (moves_total / float(states.size())))
-	var r := SumGenerator.generate(WhiteSeed.fnv1a64("white-sum-trial|0|1"), 1)
-	var pb: SumBoard = r.board
+	# a hard pool puzzle with a capped budget keeps the sample long enough
+	var p: Dictionary = SumGame.store().practice_set(0)[2]
+	var pb: SumBoard = p.board
 	var t1 := Time.get_ticks_usec()
-	var sol := SumSolver.solve(pb, pb.start, r.path, 20000)
+	var sol := SumSolver.solve(pb, pb.start, p.path, 20000)
 	var dt := (Time.get_ticks_usec() - t1) / 1e6
 	print("M1 solver: %.0f expansions per second (%d expansions)" % [sol.expansions / maxf(dt, 1e-6), sol.expansions])
 
