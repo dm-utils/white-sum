@@ -6,4 +6,5 @@ func _run() -> void:
 	await preload("res://tests/rules_tests.gd").new().run(check, self)
 	await preload("res://tests/solver_tests.gd").new().run(check, self)
 	await preload("res://tests/pool_tests.gd").new().run(check, self)
+	await preload("res://tests/ui_tests.gd").new().run(check, self)
 	await preload("res://tests/independent_tests.gd").new().run(check, self)
