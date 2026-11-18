@@ -8,3 +8,5 @@ func _run() -> void:
 	await preload("res://tests/pool_tests.gd").new().run(check, self)
 	await preload("res://tests/ui_tests.gd").new().run(check, self)
 	await preload("res://tests/independent_tests.gd").new().run(check, self)
+	await preload("res://tests/oracle_vector_tests.gd").new().run(check, self)
+	await preload("res://tests/ui_flow_tests.gd").new().run(check, self)
