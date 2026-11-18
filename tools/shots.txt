@@ -1,0 +1,13 @@
+# debug screenshot scenarios, read by CI and by shots.sh before-after
+easy 720x1280 --practice --level=0
+medium 720x1280 --practice --level=1 --lang=en
+hard 720x1280 --practice --level=2
+selected 720x1280 --practice --level=1 --sel=7
+selected-edge 720x1280 --practice --level=1 --sel=8
+selected-hard 720x1280 --practice --level=2 --sel=13
+midgame 720x1280 --practice --level=2 --keys=RA2LD5
+solved 720x1280 --practice --level=0 --best
+phone-safe-area 720x1280 --practice --level=1 --safe=40,80,40,60
+small 360x640 --practice --level=1 --sel=7
+desktop 1280x720 --practice --level=1
+wide 1900x1000 --practice --level=2
