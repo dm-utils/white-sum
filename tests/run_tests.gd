@@ -3,4 +3,4 @@ extends WhiteTestRunner
 
 
 func _run() -> void:
-	pass
+	await preload("res://tests/rules_tests.gd").new().run(check, self)
