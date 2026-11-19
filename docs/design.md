@@ -1,9 +1,11 @@
 # White Sum - design
 
 Status: phase 1a built (rules, solver, generator, tools, pool; trial in 5.9); phase 1b built (screen, board view, play
-version; deviations in 14.3). Later phases are designed in outline and marked **[later]**; they are not built in phase 1.
+version; deviations in 14.3). iOS test build through TestFlight designed (section 16, ADR 0007), not built yet. Later
+phases are designed in outline and marked **[later]**; they are not built in phase 1.
 This document describes the game as it must be built. Decisions with their trade-offs are in `docs/adr/`; terms are
-defined in `docs/glossary.md`; code and test rules are in `docs/conventions.md`.
+defined in `docs/glossary.md`; code and test rules are in `docs/conventions.md`. Store texts are drafted in
+`docs/store-listing.md`.
 
 White Sum is built on the shared base White Kit (`dm-utils/white-kit`, installed as a git submodule at
 `res://addons/white_kit/`, design in that repository's `docs/design.md`). Phase 1a pins kit `v0.2.0`; phase 1b pins
@@ -44,11 +46,15 @@ In scope:
 - Web version on GitHub Pages at https://play.white-sum.steefbeest.nl, usable in portrait on a phone and on a desktop
   (maximum content width, kit 0.3.0).
 - The rules engine, generator and solver needed to fill the pool (section 5), with a trial (5.7).
+- An iOS test build of the phase 1 content for iPhone, built, signed and uploaded by GitHub Actions without a Mac, and
+  distributed through TestFlight to the owner (internal) and to external testers (public link). Decision of the owner,
+  2026-11-19 (section 16, ADR 0007).
 
 Out of scope for phase 1 (designed below where marked **[later]**): binding puzzles to dates, the first day and puzzle
 numbers, the share line, daily counting (every move counts), saved daily progress, the full trial with strict gates,
-accounts, leaderboards, a server, art, sound, Android/Windows builds, a puzzle archive, run totals other than those of
-the selected tile (for example for every run at once, or while dragging).
+accounts, leaderboards, a server, art, sound, Android/Windows builds, an App Store release of the iOS app (16.10), an
+iPad layout (16.6), a puzzle archive, run totals other than those of the selected tile (for example for every run at
+once, or while dragging).
 
 ### 1.2 Later phases
 
@@ -697,8 +703,11 @@ leaderboard phase the server provides the daily puzzle.
 | K9 | Board view | `WhiteTileView` (kit 0.3.0) | `SumBoardView extends WhiteTileView`, `CELL_MOVES` (10.1-10.4). |
 | K10 | Safe area, maximum width | `WhiteSafeArea`, `_use_safe_area()`, `_max_content_width()` (kit 0.3.0) | true and 720. |
 | K11 | Tests, precompute, CI, screenshots | `WhiteTestRunner`, `WhitePrecompute`, `templates/ci.yml`, `tools/shots.sh` | As White Tally; screenshots from `tools/shots.txt` (11). |
+| K12 | Godot and export templates in CI | `ci/setup-godot` | `ci.yml`, and the `export` job of `ios.yml` (16.8), unchanged. |
 
-No kit changes are requested beyond kit 0.3.0 as designed.
+No kit changes are requested beyond kit 0.3.0 as designed. The iOS build (section 16) needs none either; the only
+conditional kit change (macOS support in `setup-godot`) is the fallback of ADR 0007 and would be requested in
+`dm-utils/white-kit`, never made in `addons/white_kit`.
 
 ## 8. Attempt and record
 
@@ -855,16 +864,18 @@ seam).
 - Export preset `exclude_filter="tests/*,tools/*,addons/white_kit/tests/*,addons/white_kit/tools/*"`.
 - On `develop` the Web build is published to https://play.white-sum.steefbeest.nl (custom domain: Pages setting plus a
   DNS record in the existing zone, as for the other games; no CNAME file, the Pages source is the workflow).
+- iOS: a separate workflow `.github/workflows/ios.yml`, started by hand or by a `v<version>` tag, exports, signs and
+  uploads a TestFlight build (section 16, ADR 0007). It never runs on an ordinary push.
 - No Android or Windows builds in phase 1. No `LICENSE` file (all rights reserved).
 
 ## 12. Roadmap
 
 | Phase | Content |
 |---|---|
-| 1 | Look and feel: rules, generator, solver, precomputed pool in three levels, controls, animations, readability, NL/EN, play version. |
+| 1 | Look and feel: rules, generator, solver, precomputed pool in three levels, controls, animations, readability, NL/EN, play version; iOS test build through TestFlight (section 16). |
 | 2 | Daily puzzle: three puzzles per Dutch day, first day and numbers, share line, `EVERY_MOVE`, saved daily progress, full trial (5.8). |
 | 3 | Tuning from play tests: levels, bands, scoring, par visibility, more run-total helpers, dead-end reporting, possibly another target. |
-| 4 | Version 1 finish: look, sound, statistics, Android. |
+| 4 | Version 1 finish: look, sound, statistics, Android, App Store release of the iOS app (16.10). |
 | 5 | st33f-engine: daily seed or puzzle from the server, results, leaderboards, friends, accounts (owner approval for players aged 10-15). |
 | 6 | Competitions; player feedback triage. |
 
@@ -934,6 +945,8 @@ UI and deployment (tests, screenshots or manual)
 - CI on `develop` green (pin, kit tests, game tests, screenshots); https://play.white-sum.steefbeest.nl loads and plays
   on a phone and on a PC.
 
+iOS build: section 16.11.
+
 ### 13.2 [later] Phase 2
 
 - `EVERY_MOVE`: undo and restart never lower the count.
@@ -988,6 +1001,10 @@ Deviations and additions:
   is the only hook between the tile bodies and the numerals.
 - The screenshot scenarios `selected-edge`, `selected-hard` and `midgame` were added to the list of section 11.
 
+### 14.4 iOS build
+
+See 16.9.
+
 ## 15. Open points
 
 - Phase 1 look-and-feel test: is the gentle colour ramp helpful or noise; are the totals of the selected tile enough,
@@ -997,3 +1014,367 @@ Deviations and additions:
 - Later: whether value 6 or another target (for example 12) gives more depth; whether dead ends beyond "no move left"
   are reported.
 - The trial may change board sizes and bands within section 4; outside them is an architect decision.
+- iOS (section 16): assumption I1 (Linux export of the Xcode project) is verified in the first developer step; if it
+  fails, the kit fallback of ADR 0007 applies. Owner decisions still open: the TestFlight feedback address, the
+  copyright line, whether "White Sum" is still free as an App Store name, and (before an App Store release) the EU
+  trader status. The privacy pages on the promo site (repository `pulse`) are needed before external testing.
+
+## 16. iOS build (TestFlight)
+
+Designed 2026-11-19 (ADR 0007). Scope: the phase 1 content exactly as on the web, on iPhone, distributed through
+TestFlight to the owner (internal group) and to external testers (public link). Everything is built, signed and
+uploaded by GitHub Actions; no step needs a Mac. An App Store release is a later step (16.10); nothing here has to be
+redone for it.
+
+### 16.1 Assumptions
+
+| # | Assumption | If wrong |
+|---|---|---|
+| I1 | Godot 4.7.2 on Linux exports an iOS Xcode project when `application/export_project_only` is true, and only warns that the `.ipa` can be built on macOS only. | Fallback of ADR 0007 decision 6: macOS support in the kit action `setup-godot` (a White Kit card and release); the export moves into the macOS job. |
+| I2 | The export templates archive that `setup-godot` installs contains the iOS template. | Same fallback. |
+| I3 | The GitHub runner image `macos-26` has Xcode 26 with the iOS 26 SDK, which App Store Connect requires for new uploads. | Use the newest macOS image that has the required SDK; step B2 fails loudly otherwise. |
+| I4 | The game sends nothing over the network. Checked 2026-11-19: no `HTTPRequest`, `HTTPClient`, `StreamPeer*`, `WebSocket*`, `PacketPeer*`, `OS.shell_open` or `JavaScriptBridge` in the game or in White Kit; the only file written is `user://progress.json` (the language). | 16.7 and the privacy answers in `docs/store-listing.md` must be redone. |
+| I5 | The option names in 16.3 are Godot 4.7.2's. Godot renames iOS options between minor versions. | Use the 4.7.2 option with the same meaning and record the name in 16.12. |
+
+### 16.2 Files
+
+| File | Change |
+|---|---|
+| `export_presets.cfg` | New preset `[preset.1]` "iOS" (16.3). The Web preset `[preset.0]` stays unchanged. |
+| `export/.gdignore` | New, empty: keeps the icon PNGs out of the import and therefore out of the Web export. |
+| `export/ios/icons/icon_<n>.png` | New: generated app icons (16.5), committed. |
+| `tools/ios_icons.gd` | New: icon generator (`extends SceneTree`, headless). |
+| `tests/ios_tests.gd` | New: preset and icon checks (16.11 A), registered in the game's test runner. |
+| `.github/workflows/ios.yml` | New: the iOS workflow (16.8). Owned by the game, not from the kit template. |
+| `.github/workflows/ci.yml` | Only `MIN_CHECKS` raised by the new checks. |
+| `.gitignore` | Add `*.p12`, `*.p8`, `*.mobileprovision`, `*.cer`, `*.csr`, `*.key` (signing material never enters git). |
+| `README.md` | Short section "iOS": what the workflow does, how to start it, the names of the secrets (never values). |
+
+If the exporter cannot read files below a folder with `.gdignore` (found in step 1 of 16.9), remove `export/.gdignore`
+and add `export/*` to the exclude filter of both presets instead.
+
+### 16.3 Export preset "iOS"
+
+Preset header:
+
+```
+[preset.1]
+
+name="iOS"
+platform="iOS"
+runnable=false
+dedicated_server=false
+custom_features=""
+export_filter="all_resources"
+include_filter="*.json"
+exclude_filter="tests/*,tools/*,addons/white_kit/tests/*,addons/white_kit/tools/*"
+export_path="build/ios/WhiteSum.ipa"
+encryption_include_filters=""
+encryption_exclude_filters=""
+encrypt_pck=false
+encrypt_directory=false
+script_export_mode=2
+```
+
+`include_filter="*.json"` is required: the pool `data/practice.json` must be in the package, as on the web. The export
+file name `WhiteSum` (no space) becomes the Xcode project and scheme name.
+
+Options (`[preset.1.options]`); options not listed keep Godot's default:
+
+| Option | Value | Reason |
+|---|---|---|
+| `custom_template/debug`, `custom_template/release` | `""` | Official templates from `setup-godot`. |
+| `architectures/arm64` | true | The only iOS architecture. |
+| `application/app_store_team_id` | `""` in git | Godot does not export without it; the `export` job writes `vars.APPLE_TEAM_ID` (16.8 E6). |
+| `application/export_method_debug` | Development | Not used by the workflow. |
+| `application/export_method_release` | App Store | |
+| `application/code_sign_identity_debug` | `"Apple Development"` | Not used. |
+| `application/code_sign_identity_release` | `"Apple Distribution"` | Also passed to `xcodebuild` (B5). |
+| `application/provisioning_profile_uuid_debug`, `..._release` | `""` | `xcodebuild` gets the profile from the workflow (B5). |
+| `application/bundle_identifier` | `"nl.steefbeest.whitesum"` | Owner's choice. |
+| `application/signature` (if present) | `""` | |
+| `application/short_version` | `""` in git | CI writes `config/version` (E6): `CFBundleShortVersionString`. |
+| `application/version` | `""` in git | CI writes the run number (E6): `CFBundleVersion`. |
+| `application/min_ios_version` | `"16.0"` | See below. |
+| `application/targeted_device_family` | iPhone (value 0) | 16.6. |
+| `application/export_project_only` | true | Export on Linux (ADR 0007). |
+| `application/generate_simulator_library_if_missing` (if present) | false | Needs macOS tools; no simulator build. |
+| `application/icon_interpolation` | Lanczos | Only used when an icon size has no exact file. |
+| `application/additional_plist_content` | 16.4 | |
+| `capabilities/*` | all false or empty | No Wi-Fi, push, Game Center or other capability. |
+| `user_data/accessible_from_files_app` | false | Nothing for the player there. |
+| `user_data/accessible_from_itunes_sharing` | false | |
+| `privacy/*_usage_description` | `""` | No camera, microphone, photo library or location. |
+| `privacy/tracking_enabled` | false | 16.7. |
+| `privacy/tracking_domains` | empty | |
+| `privacy/collected_data/*` | all off | 16.7. |
+| `privacy/*_access_reasons` (required-reason APIs) | Godot defaults | The engine's own reasons; the game adds no such API. |
+| `icons/*` | `res://export/ios/icons/icon_<n>.png` with `n` = the option's size | 16.5. Every icon option the 4.7.2 preset offers is set (dark and tinted variants excepted). |
+| `storyboard/use_custom_bg_color` | true | 16.6. |
+| `storyboard/custom_bg_color` | `Color(0.106, 0.122, 0.149, 1)` (`#1B1F26`) | Same as `boot_splash/bg_color`. |
+| `storyboard/custom_image@2x`, `storyboard/custom_image@3x` | `""` | No launch image. |
+
+Minimum iOS version 16.0: runs on every iPhone from the iPhone 8 (2017) on, which covers the owner and the test group,
+and stays inside the deployment range of Xcode 26. If Godot 4.7.2's default `min_ios_version` is higher than 16.0, use
+Godot's default instead (the engine may need it) and record it in 16.12. Alternative 15.0 (adds iPhone 6s, 7 and the
+first SE): rejected for now because nobody can test on iOS 15; lowering it later is a one-line change.
+
+`project.godot` needs no change. Kept as they are: `display/window/handheld/orientation=1` (portrait),
+`boot_splash/show_image=false`, `boot_splash/bg_color` `#1B1F26`, `rendering/textures/vram_compression/import_etc2_astc=true`,
+and the iOS defaults `display/window/ios/hide_home_indicator`, `hide_status_bar`, `suppress_ui_gesture` and
+`allow_high_refresh_rate` (all true; not written to the file because they are defaults).
+
+`application/config/version` must be one to three dot-separated integers (`0.1.0` now); Apple rejects other forms. It
+is raised by hand for a new TestFlight version line (for example `0.2.0` after the look-and-feel changes); the build
+number never needs a hand edit.
+
+### 16.4 Info.plist
+
+Godot writes bundle id, versions, display name (from `config/name`: "White Sum"), orientations, device family,
+minimum iOS version and the privacy manifest from the preset. `application/additional_plist_content` adds:
+
+```xml
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+<key>CFBundleLocalizations</key>
+<array>
+	<string>en</string>
+	<string>nl</string>
+</array>
+```
+
+- `ITSAppUsesNonExemptEncryption = false`: the app uses no encryption of its own (no network, no encrypted files,
+  `encrypt_pck` false). App Store Connect then asks no export compliance question for each build.
+- `CFBundleLocalizations`: the Dutch and English texts live in `SumStrings`, which iOS cannot detect; the key makes the
+  App Store list both languages. Inside the game the kit's language button stays the way to switch.
+
+If Godot 4.7.2 already writes one of these keys itself, leave it out here; check V in 16.8 requires every key exactly
+once.
+
+### 16.5 App icons
+
+Source: `icon.svg` (128x128, a dark rounded square with three tiles). iOS applies its own rounded mask and rejects an
+App Store icon with an alpha channel, so the iOS icons are full, opaque squares.
+
+`tools/ios_icons.gd` (`godot --headless --path . -s res://tools/ios_icons.gd`):
+
+- `static func render(n: int) -> Image`: `Image.load_svg_from_string(<text of res://icon.svg>, n / 128.0)` renders the
+  SVG at `n x n`; the result is blended onto an `n x n` image filled with `#1B1F26` (the SVG's own background colour,
+  so the SVG's transparent rounded corners become a full square), then converted to `Image.FORMAT_RGB8`. Every size is
+  rendered directly from the SVG; nothing is scaled down from 1024.
+- The main part writes `res://export/ios/icons/icon_<n>.png` for every size below and prints one line per file.
+- Deterministic for the pinned Godot version (same rasteriser); the tests rely on it (A2).
+
+Sizes in pixels: 1024, 180, 167, 152, 120, 87, 80, 76, 60, 58, 40, 29, 20. This covers both a single-size asset
+catalog (1024 only) and the older per-device list, whichever the 4.7.2 preset offers. iPad sizes (167, 152, 76) are
+generated for completeness even though the build is iPhone only. Dark and tinted variants (iOS 18) stay empty; iOS
+derives them. **[later]** own variants.
+
+When `icon.svg` changes, run the tool and commit the PNGs; test A2 fails until then.
+
+### 16.6 Devices, orientation, launch screen, safe area
+
+- **iPhone only** (`targeted_device_family` iPhone). The game is a portrait 720-wide column; on an iPad it would be a
+  narrow strip on a large screen, would need its own App Store screenshots (13-inch) and an iPad layout check. iPads
+  can still install the iPhone app and run it in iPhone compatibility mode. Alternative "iPhone and iPad": rejected for
+  now; **[later]** with a tablet layout.
+- **Portrait only**: `display/window/handheld/orientation=1` gives `UISupportedInterfaceOrientations` =
+  `UIInterfaceOrientationPortrait` only; no upside down.
+- **Launch screen**: Godot's generated storyboard with background `#1B1F26` and no image; the boot splash shows no
+  image on the same colour. From the tap on the icon to the first frame the screen is one dark colour: no white flash,
+  no Godot logo.
+- **Safe area**: the screen already uses the kit's `WhiteSafeArea` (`_use_safe_area()` true, 10.3), which reads
+  `DisplayServer.get_display_safe_area()`; on an iPhone that excludes the notch or Dynamic Island and the home
+  indicator area. The status bar is hidden (Godot default). No code change; verified on a device (C4).
+- **System gestures**: `suppress_ui_gesture` (default true) defers the system gestures at the screen edges, so a swipe
+  on a bottom-row tile does not send the app home; `hide_home_indicator` (default true).
+- **Renderer**: GL Compatibility as on the web; ETC2/ASTC import is already on. The game draws everything in code.
+
+### 16.7 Privacy, tracking, encryption
+
+- The app collects no data in Apple's sense (data that leaves the device): no network code (I4), no analytics, no ads,
+  no crash reporter of its own, no accounts. The language choice stays on the device in `user://progress.json`.
+- App Privacy in App Store Connect: **Data Not Collected**; tracking: no.
+- Privacy manifest (`PrivacyInfo.xcprivacy`, generated by Godot from the preset): `NSPrivacyTracking` false, no
+  tracking domains, no collected data types; the engine's required-reason API entries as Godot writes them.
+- Encryption: `ITSAppUsesNonExemptEncryption` false (16.4).
+- Privacy policy text and URLs: `docs/store-listing.md` sections 6 and 7. The policy must be online before the first
+  external TestFlight build is submitted. The promo site (repository `pulse`, `apps/white-sum-site` and the shared
+  `packages/puzzle-site`) describes only the browser version today; adding the app privacy pages there is a follow-up
+  outside this repository.
+- Re-check this section before any feature with network access (phase 5).
+
+### 16.8 Workflow `.github/workflows/ios.yml`
+
+Triggers, guards and shared settings:
+
+```yaml
+name: iOS
+on:
+  workflow_dispatch:
+    inputs:
+      signing:
+        description: "Sign the build (false: unsigned compile check, no secrets needed)"
+        type: boolean
+        default: true
+      upload:
+        description: "Upload to TestFlight (only with signing)"
+        type: boolean
+        default: true
+  push:
+    tags: ["v*"]
+concurrency:
+  group: ios
+  cancel-in-progress: false
+permissions:
+  contents: read
+```
+
+- Both jobs have `if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' ||
+  startsWith(github.ref, 'refs/tags/v')`.
+- On a tag push the inputs are empty: signing and upload are on (`github.event_name == 'push' || inputs.signing`, and
+  the same for upload together with signing).
+- One `ios` concurrency group, never cancelled: runs queue, so build numbers reach App Store Connect in order.
+
+Variables and secrets (values only in GitHub settings, never in the repository or in logs):
+
+| Name | Kind | Content |
+|---|---|---|
+| `APPLE_TEAM_ID` | repository variable | The 10-character Team ID (an identifier, not a credential). |
+| `IOS_DIST_CERT_P12_BASE64` | secret in environment `testflight` | Base64 of the `.p12` holding the Apple Distribution certificate and its private key. |
+| `IOS_DIST_CERT_PASSWORD` | secret, `testflight` | Password of that `.p12`. |
+| `IOS_PROFILE_BASE64` | secret, `testflight` | Base64 of the App Store Connect provisioning profile (`.mobileprovision`). |
+| `ASC_KEY_ID` | secret, `testflight` | Key ID of the App Store Connect API team key. |
+| `ASC_ISSUER_ID` | secret, `testflight` | Issuer ID of the App Store Connect API keys. |
+| `ASC_KEY_P8_BASE64` | secret, `testflight` | Base64 of `AuthKey_<key id>.p8`. |
+
+The environment `testflight` allows deployments only from `develop`, `main` and tags `v*`. The keychain password is
+random per run (`openssl rand -hex 24`), not a secret.
+
+**Job `export`** (`ubuntu-24.04`, timeout 30 minutes; no secrets):
+
+| # | Step | Detail |
+|---|---|---|
+| E1 | Checkout | `actions/checkout@v6` with `submodules: true`. |
+| E2 | Kit pin | The same step as in `ci.yml`. |
+| E3 | Godot | `uses: ./addons/white_kit/ci/setup-godot` (unchanged). |
+| E4 | Import and tests | Import, kit tests and game tests with the same commands and thresholds as `ci.yml` (`MIN_CHECKS` equal in both files). |
+| E5 | Version | `version` = the value of `config/version` in `project.godot`; must match `^[0-9]+(\.[0-9]+){0,2}$`. On a tag push the tag must equal `v<version>`, else fail here. `build` = `github.run_number`. Both go to the step summary and to job outputs. |
+| E6 | Fill the preset | In the runner's working copy of `export_presets.cfg` replace `application/short_version=""`, `application/version=""` and `application/app_store_team_id=""` by the version, the build and `vars.APPLE_TEAM_ID`. Each of the three lines must occur exactly once before the replacement (fail otherwise); the team id must match `^[A-Z0-9]{10}$`. Nothing is committed. |
+| E7 | Export | `mkdir -p build/ios && touch build/.gdignore`; `timeout 600 godot --headless --path . --export-release "iOS" build/ios/WhiteSum.ipa`. Then require `build/ios/WhiteSum.xcodeproj/project.pbxproj` and at least one `.pck` below `build/ios`; list the tree two levels deep in the summary. |
+| E8 | Artifact | `tar -czf build/ios-project.tgz -C build ios` (keeps permissions and links); upload as `ios-project`, retention 1 day. |
+
+**Job `build`** (`macos-26`, `needs: export`, `environment: testflight`, timeout 45 minutes). Shell steps use
+`set -euo pipefail`. Secrets enter as step `env`, are decoded into files under `$RUNNER_TEMP` and are never printed.
+Steps marked "signing" are skipped in the unsigned mode.
+
+| # | Step | Detail |
+|---|---|---|
+| B1 | Project | Download `ios-project`; `tar -xzf` into `build/`. |
+| B2 | Xcode | Select the newest `/Applications/Xcode_26*.app` (`sort -V`) with `sudo xcode-select -s`; `xcodebuild -version` to the summary. None found: fail. |
+| B3 | Certificate (signing) | Decode the `.p12`. Create `$RUNNER_TEMP/ios.keychain-db` with the random password, unlock it, set a 6-hour lock timeout; `security import` the `.p12` with `-T /usr/bin/codesign -T /usr/bin/security`; `security set-key-partition-list -S apple-tool:,apple: -k <password>`; add the keychain to the user search list (keeping the existing ones). `security find-identity -v -p codesigning <keychain>` must show exactly one valid identity whose name starts with `Apple Distribution`. If it shows none because the chain is incomplete, import Apple's WWDR intermediate certificate (G3, https://www.apple.com/certificateauthority/) and check again. |
+| B4 | Profile (signing) | Decode the profile; `security cms -D -i <file>` into a plist; read `UUID`, `Name`, `TeamIdentifier:0`, `ExpirationDate` and `Entitlements:application-identifier` with `PlistBuddy`. Require `application-identifier` = `<team>.nl.steefbeest.whitesum` and `TeamIdentifier:0` = `APPLE_TEAM_ID`. Expired: fail. Expires within 30 days: `::warning::` with the date. Copy it as `<UUID>.mobileprovision` into both `~/Library/MobileDevice/Provisioning Profiles/` and `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` (Xcode 16 and later read the second). |
+| B5 | Archive | `xcodebuild archive -project build/ios/WhiteSum.xcodeproj -scheme WhiteSum -configuration Release -destination 'generic/platform=iOS' -archivePath build/ios/WhiteSum.xcarchive`, with signing: `CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=<team> CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER=<UUID> OTHER_CODE_SIGN_FLAGS="--keychain <keychain>"`; without signing: `CODE_SIGNING_ALLOWED=NO`. Output to `build/ios/archive.log`; on failure print its last 200 lines. If `xcodebuild -list` shows another scheme name, use that one and record it in 16.12. |
+| B6 | Export options (signing) | Write `build/ios/ExportOptions.plist` with `PlistBuddy`: `method` = `app-store-connect`, `teamID` = team, `signingStyle` = `manual`, `signingCertificate` = `Apple Distribution`, `provisioningProfiles` = dictionary {`nl.steefbeest.whitesum`: `<UUID>`}, `uploadSymbols` = true, `manageAppVersionAndBuildNumber` = false, `destination` = `export`. |
+| B7 | IPA (signing) | `xcodebuild -exportArchive -archivePath build/ios/WhiteSum.xcarchive -exportPath build/ios/export -exportOptionsPlist build/ios/ExportOptions.plist`, output to `build/ios/export.log`; exactly one `build/ios/export/*.ipa` must result. |
+| V | Verify | On the app bundle (from the IPA with signing, from `WhiteSum.xcarchive/Products/Applications/*.app` without), each item failing the job: `CFBundleIdentifier` = `nl.steefbeest.whitesum`; `CFBundleShortVersionString` and `CFBundleVersion` = E5's version and build; `CFBundleDisplayName` (or `CFBundleName` when absent) = `White Sum`; `MinimumOSVersion` = the value of 16.3; `UIDeviceFamily` = `[1]`; `UISupportedInterfaceOrientations` = `[UIInterfaceOrientationPortrait]`, and any `UISupportedInterfaceOrientations~ipad` holds nothing else; `ITSAppUsesNonExemptEncryption` = false; `CFBundleLocalizations` = `[en, nl]`; each of these keys occurs exactly once in the Info.plist (`plutil -convert xml1`, then count); a `PrivacyInfo.xcprivacy` exists with `NSPrivacyTracking` false and `NSPrivacyCollectedDataTypes` empty or absent; a `.pck` is inside the bundle; every PNG in the exported project's `AppIcon.appiconset` reports `hasAlpha: no` (`sips -g hasAlpha`) and one of them is 1024x1024. With signing also: `codesign --verify --deep --strict` passes; the entitlements (`codesign -d --entitlements -`) have `get-task-allow` false; the UUID of `embedded.mobileprovision` equals B4's. Results as a table in the summary. |
+| U | Upload (signing and upload) | Write the `.p8` to `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8`; `xcrun altool --upload-app --type ios --file <ipa> --apiKey <ASC_KEY_ID> --apiIssuer <ASC_ISSUER_ID>`; a non-zero exit fails the job. Summary: `Uploaded White Sum <version> (<build>)`. Fallback if `--upload-app` no longer exists in the selected Xcode: set `destination` = `upload` in B6 and pass `-authenticationKeyPath <p8> -authenticationKeyID <id> -authenticationKeyIssuerID <issuer>` to B7; record the switch in 16.12. |
+| L | Logs on failure | `if: failure()`: upload `build/ios/*.log` as artifact `ios-logs`, retention 7 days (they hold no secrets). |
+| C | Cleanup | `if: always()`: `security delete-keychain <keychain>`; remove both installed profile copies, the `.p8`, the decoded `.p12` and profile files. |
+
+No IPA, archive or signed binary is kept as an artifact: the repository is public and TestFlight is the distribution
+channel.
+
+The owner's Apple-side setup (certificate created with `openssl` on Linux, profile, app record, API key, secrets,
+tester groups) happens on the Apple and GitHub websites; its results are exactly the variable and secrets above.
+
+### 16.9 Developer work
+
+1. Spike for I1 and I5: add the preset, put a dummy team id (`ABCDE12345`) and versions into a scratch copy of the
+   preset, and run the Linux export of E7 locally. Pass: `build/ios/WhiteSum.xcodeproj` exists and the exit code is 0.
+   Note the 4.7.2 option names (icons, storyboard, privacy, simulator library) and the default `min_ios_version`.
+   Fail: stop and report to the project lead (kit fallback, ADR 0007 decision 6). Never commit the dummy team id.
+2. `tools/ios_icons.gd`, `export/.gdignore`; generate and commit the icons (16.5).
+3. Preset `[preset.1]` "iOS" (16.3), in the editor or by hand; `git diff` shows no change inside `[preset.0]`.
+4. `tests/ios_tests.gd` (16.11 A), `.gitignore` additions; raise `MIN_CHECKS` in `ci.yml` and use the same number in
+   `ios.yml`.
+5. `ios.yml` (16.8). First run on `develop` with `signing` false: needs no secrets; E1-E8, B1, B2, B5 and V must pass.
+6. When the owner reports the account and secrets ready: a run with `signing` true and `upload` false, then one with
+   `upload` true.
+7. README section "iOS"; fill 16.12.
+
+Done when: 16.11 A and B are met and the first build is in TestFlight. Group C is the device test by the owner and
+the tester.
+
+### 16.10 [later] App Store release
+
+Not part of this work. Needed then: the store texts of `docs/store-listing.md` entered in both languages; the privacy
+pages online; App Privacy "Data Not Collected"; the age rating questionnaire; screenshots for the 6.9-inch iPhone
+(1320x2868 or 1290x2796 portrait). The kit's `shots.sh` caps scenarios at 1920x1440, so these screenshots need either
+a kit change that raises its virtual screen (a White Kit card) or another capture route. Then the EU trader status
+declaration and a review submission of a build from a `v<version>` tag. With an individual account the App Store page
+shows the owner's legal name as seller, and a trader declaration publishes contact details in the EU; both are the
+owner's decision before release.
+
+### 16.11 Acceptance criteria
+
+**A. Automated, every CI run on Linux** (`tests/ios_tests.gd`, counted in `MIN_CHECKS`):
+
+- A1 `export_presets.cfg` (read with `ConfigFile`) has exactly one preset with `platform="iOS"`, named `iOS`, with:
+  `export_path` `build/ios/WhiteSum.ipa`; `include_filter` containing `*.json`; `exclude_filter` equal to the Web
+  preset's; `encrypt_pck` false; bundle id `nl.steefbeest.whitesum`; `targeted_device_family` iPhone;
+  `export_project_only` true; `export_method_release` App Store; `code_sign_identity_release` `Apple Distribution`;
+  `min_ios_version` as in 16.3; `app_store_team_id`, `short_version` and `version` empty (no team id and no hand
+  version in git); `additional_plist_content` containing `ITSAppUsesNonExemptEncryption` followed by `<false/>` and
+  `CFBundleLocalizations` with `en` and `nl`; `privacy/tracking_enabled` false; storyboard custom background on with
+  colour `#1B1F26`; every non-empty `icons/*` option points to an existing file under `res://export/ios/icons/`, and
+  the 1024 option is set.
+- A2 The 13 icon files of 16.5 exist; each loads as `n x n`; format `FORMAT_RGB8` and `detect_alpha()` is
+  `ALPHA_NONE`; the corner pixels `(0, 0)` and `(n-1, n-1)` are `#1B1F26` (each channel within 1/255); for `n` in 1024,
+  180 and 120 the pixels equal `render(n)` of `tools/ios_icons.gd` (icons up to date with `icon.svg`).
+- A3 The Web preset is unchanged (name, platform, export path, filters, options) and the Web export in `ci.yml` stays
+  green.
+- A4 `git ls-files` contains no `*.p12`, `*.p8`, `*.mobileprovision`, `*.cer`, `*.csr` or `*.key` file (tester).
+
+**B. Workflow** (tester runs it or inspects the workflow and run logs):
+
+- B1 A push to `develop` or a pull request does not start `ios.yml`; `ci.yml` differs only in `MIN_CHECKS`.
+- B2 A manual run on `develop` with `signing` false is green without any secret; the summary shows version `0.1.0`,
+  the build number and the Xcode 26 version; V passes its unsigned checks.
+- B3 A manual run from any other branch skips both jobs.
+- B4 A tag that is not `v<config/version>` fails in E5; the `build` job does not run.
+- B5 A run with `signing` true and `upload` false is green including the signing checks of V; there is no IPA artifact;
+  no secret value appears in the log.
+- B6 A run with `upload` true is green, and the build `0.1.0 (<run number>)` appears in TestFlight in App Store Connect
+  without "Missing Compliance".
+- B7 Step C (cleanup) has `if: always()` and deletes the keychain, profiles, `.p8` and `.p12`; on a failed run it shows
+  as executed.
+- B8 Consecutive uploads have increasing build numbers. Re-running a job whose upload already succeeded fails in U
+  with a duplicate build message (expected; start a new run).
+
+**C. Device** (the owner and the tester, iPhone, through TestFlight):
+
+- C1 Installs through TestFlight; the home screen shows the White Sum icon as a full square under the iOS mask, without
+  light or dark corner artefacts; the label reads "White Sum".
+- C2 Cold start: one dark `#1B1F26` screen from launch to the first frame, no white flash, no logo; the game opens on a
+  pool set.
+- C3 Turning the phone does not rotate the game.
+- C4 On an iPhone with a notch or Dynamic Island: title, tabs, counter, board, message line and buttons are fully
+  visible; nothing sits under the island, the status area or the home indicator. The same on an iPhone without a notch
+  when one is available.
+- C5 Swipe, tap-tap with selection totals, Undo, Restart, Next and Best route behave as in the web version; a swipe on
+  a bottom-row tile does not leave the app.
+- C6 The language choice survives closing the app from the app switcher.
+- C7 With flight mode on, everything works.
+- C8 After switching to another app and back, the same puzzle and position are shown.
+- C9 The app never asks for a permission or for tracking consent.
+- C10 An external tester outside the team installs the app through the public link after the beta review.
+
+**D. Store texts** (tester, on `docs/store-listing.md`): name and subtitle at most 30 characters, promotional text at
+most 170, keywords at most 100 and without the words of the app name, description at most 4000; no feature promised
+that phase 1 does not have (no daily puzzle, no leaderboards); both languages say the same.
+
+### 16.12 As built
+
+To be filled in by the developer: option names that differ from 16.3, Godot's default `min_ios_version`, the scheme
+name, the Xcode version used, and any fallback taken (`.gdignore`, upload).

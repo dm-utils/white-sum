@@ -24,8 +24,9 @@ addons/white_kit/tools/shots.sh before-after . tools/shots.txt v<old> v<new>
 |---|---|
 | `sim/` | Rules (`SumBoard`), solver (`SumSolver`), generator (`SumGenerator`), game constants and puzzle store (`SumGame`). No scenes, no nodes, no UI. |
 | `ui/` | Main screen (`main.gd`, extends `WhiteDayScreen`), board view (`board_view.gd`, extends `WhiteTileView`), texts (`strings.gd`). Depends on `sim/` and the kit, never the other way round. |
-| `tools/` | Headless scripts: `build_puzzles.gd` (extends `WhitePrecompute`), `verify_puzzles.gd`, `measure.gd`; the screenshot scenario file `shots.txt`. |
+| `tools/` | Headless scripts: `build_puzzles.gd` (extends `WhitePrecompute`), `verify_puzzles.gd`, `measure.gd`, `ios_icons.gd`; the screenshot scenario file `shots.txt`. |
 | `data/` | Precomputed puzzles: the pool `practice.json` (phase 1); `daily.json` from phase 2. |
+| `export/` | Platform files that are not game resources (ignored by the import through `.gdignore`): `ios/icons/` with the generated iOS app icons. |
 | `tests/` | Headless test runner (extends `WhiteTestRunner`) and tests. |
 | `addons/white_kit/` | White Kit (submodule). |
 | `build/` | Local output (exports, generated puzzle files, screenshots). Ignored by git. |
@@ -85,7 +86,7 @@ timeout 300 godot --headless --path . res://tests/run_tests.tscn -- --min-checks
 ```
 
 - `tests/run_tests.gd` extends `WhiteTestRunner`; CI's `MIN_CHECKS` equals the current check count; raise it when
-  tests are added.
+  tests are added. `ci.yml` and `ios.yml` use the same number.
 - `what` in `check(ok, what)` describes the expected behaviour in plain words.
 - Rule tests build boards with `SumBoard.from_rows()` and compare with `render()`. Every example in design 2.7 is a
   test. The independent oracle in the tests shares no code with `SumBoard`.
@@ -116,11 +117,32 @@ godot --headless --path . -s res://tools/verify_puzzles.gd -- --file=build/pract
 - [later] Daily puzzles: build ahead, verify, then `--merge` into `data/daily.json`; keep at least 14 days ahead.
 - Run the tests and the verify tool before committing data.
 
+## iOS builds
+
+Design section 16, ADR 0007.
+
+- iOS builds only come from `.github/workflows/ios.yml`: started by hand (Actions, "iOS", Run workflow) on `develop` or
+  `main`, or by pushing a tag `v<config/version>`. Never from an ordinary push.
+- The marketing version is `application/config/version` in `project.godot`; raise it by hand for a new version line.
+  The build number is the workflow's run number; never edit it.
+- `export_presets.cfg` keeps the team id and both iOS version fields empty; the workflow fills them on the runner.
+- Signing material (`*.p12`, `*.p8`, `*.mobileprovision`, `*.cer`, `*.csr`, `*.key`) never enters the repository;
+  it lives only in the GitHub environment `testflight` as base64 secrets. The README names the secrets, never values.
+- After a change to `icon.svg`, regenerate the iOS icons and commit them:
+
+```bash
+godot --headless --path . -s res://tools/ios_icons.gd
+```
+
+- Distribution certificate and provisioning profile expire after one year; the workflow warns 30 days ahead. Renewal
+  replaces the secrets `IOS_DIST_CERT_P12_BASE64`, `IOS_DIST_CERT_PASSWORD` and `IOS_PROFILE_BASE64`.
+
 ## Git and CI
 
 - `develop` is the working branch; every push to `develop` runs CI and (from phase 1b) publishes the play version at
   https://play.white-sum.steefbeest.nl. `main` is protected and updated through pull requests only.
-- `.github/workflows/ci.yml` comes from the kit template (`addons/white_kit/templates/ci.yml`).
+- `.github/workflows/ci.yml` comes from the kit template (`addons/white_kit/templates/ci.yml`); `ios.yml` is the
+  game's own.
 - Branch names: `feature/<description>`, `fix/<description>`, `chore/<description>`.
 - Commit messages in English, imperative, short subject line.
 - CI must be green before merging to `main`. Do not commit build output.
