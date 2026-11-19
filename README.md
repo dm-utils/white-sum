@@ -42,4 +42,20 @@ godot --headless --path . -s res://tools/build_puzzles.gd -- --practice=5 --star
 godot --headless --path . -s res://tools/verify_puzzles.gd -- --file=data/practice.json
 ```
 
+## iOS
+
+TestFlight builds come from `.github/workflows/ios.yml` (Actions, "iOS", Run workflow, on `develop` or `main`, or a pushed
+tag `v<version>`). Godot exports the Xcode project on Linux; a macOS job archives, signs, checks and uploads it. Run with
+`signing` off for an unsigned compile check that needs no secrets. Details: `docs/design.md` section 16 and
+`docs/adr/0007-ios-testflight-builds-from-github-actions.md`.
+
+Repository variable: `APPLE_TEAM_ID`. Secrets in the environment `testflight`: `IOS_DIST_CERT_P12_BASE64`,
+`IOS_DIST_CERT_PASSWORD`, `IOS_PROFILE_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`.
+
+Regenerate the app icons after a change to `icon.svg`:
+
+```bash
+godot --headless --path . -s res://tools/ios_icons.gd
+```
+
 All rights reserved.

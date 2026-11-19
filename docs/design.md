@@ -1376,5 +1376,27 @@ that phase 1 does not have (no daily puzzle, no leaderboards); both languages sa
 
 ### 16.12 As built
 
-To be filled in by the developer: option names that differ from 16.3, Godot's default `min_ios_version`, the scheme
-name, the Xcode version used, and any fallback taken (`.gdignore`, upload).
+Filled in 2026-11-19 from the local Linux spike (Godot 4.7.2, official templates); the macOS job has not run yet.
+
+- I1 holds: `--export-release "iOS"` with `export_project_only` exits 0 on Linux; the only message is the warning
+  that the `.ipa` can be built on macOS only. I2 holds (`ios.zip` in the templates). I3 is open until the first CI run.
+- Default `min_ios_version` of 4.7.2 is 15.0; the preset sets 16.0 (design value). Scheme name: `WhiteSum`
+  (`xcshareddata/xcschemes/WhiteSum.xcscheme`). Xcode version: to be filled after the first CI run.
+- Icons: 4.7.2 has no per-device size list of 13 but these options: `icon_1024x1024`, `app_store_1024x1024`,
+  `ios_128x128`, `ios_136x136`, `ios_192x192`, `ipad_152x152`, `ipad_167x167`, `iphone_120x120`, `iphone_180x180`,
+  `notification_40x40|60x60|76x76|114x114`, `settings_58x58|87x87`, `spotlight_80x80|120x120`. Sizes 114, 128, 136 and
+  192 are not in the list of 16.5, so the tool also renders them (17 files in all); an unset option would be scaled
+  from the alpha-carrying `icon.svg`. Sizes 20 and 29 are generated but no option uses them. File names are
+  `icon_<n>.png`; the options `icon_1024x1024` and `app_store_1024x1024` both point to `icon_1024.png`.
+- Enums in the file: `export_method_*` 0 App Store, 1 Development; `targeted_device_family` 0 iPhone;
+  `icon_interpolation` 4 Lanczos. Not set, so at Godot's defaults: `capabilities/*`, `privacy/collected_data/*`, the
+  usage descriptions and access reasons. `generate_simulator_library_if_missing` does not exist in 4.7.2.
+- Godot 4.7.2 already writes `ITSAppUsesNonExemptEncryption` = false itself, so `additional_plist_content` holds only
+  `CFBundleLocalizations` (16.4); `tests/ios_tests.gd` fails if the key is added again.
+- `export/.gdignore` works: the exported `.pck` holds no icon PNGs and `data/practice.json` is in it; the Web export is
+  unchanged.
+- Exported project: device family `"1"`, deployment target 16.0, all icons in `AppIcon.appiconset` RGB without alpha, launch
+  storyboard colour #1B1F26, `PrivacyInfo.xcprivacy` with `NSPrivacyTracking` false.
+- Godot prints "Property not found: application/boot_splash/fullsize" during the iOS export; harmless.
+- Unsigned run without the repository variable: `ios.yml` uses the placeholder team id `ABCDE12345` (Godot needs one);
+  with signing it fails when `APPLE_TEAM_ID` is missing.
