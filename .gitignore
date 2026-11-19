@@ -1,3 +1,9 @@
 .godot/
 /build/
 *.tmp
+*.p12
+*.p8
+*.mobileprovision
+*.cer
+*.csr
+*.key
