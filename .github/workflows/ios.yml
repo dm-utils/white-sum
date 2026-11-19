@@ -25,7 +25,7 @@ permissions:
   contents: read
 
 env:
-  MIN_CHECKS: "305" # same as ci.yml
+  MIN_CHECKS: "307" # same as ci.yml
   BUNDLE_ID: nl.steefbeest.whitesum
   MIN_IOS: "16.0" # export_presets.cfg, min_ios_version
 
@@ -346,6 +346,17 @@ jobs:
           done
           rec "App icons with alpha" 0 "$alpha"
           rec "App icon 1024x1024 present" yes "$big"
+          splash=build/ios/WhiteSum/Images.xcassets/SplashImage.imageset
+          big_splash=0; n_splash=0
+          for f in "$splash"/*.png; do
+            n_splash=$((n_splash + 1))
+            w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/ {print $2}')
+            h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/ {print $2}')
+            a=$(sips -g hasAlpha "$f" | awk '/hasAlpha/ {print $2}')
+            if [ "$w" -gt 64 ] || [ "$h" -gt 64 ] || [ "$a" != yes ]; then big_splash=$((big_splash + 1)); fi
+          done
+          rec "Launch images present" yes "$([ "$n_splash" -gt 0 ] && echo yes || echo no)"
+          rec "Launch images over 64 px or opaque" 0 "$big_splash"
           if [ "$SIGNING" = true ]; then
             codesign --verify --deep --strict "$app" && cs=ok || cs=failed
             rec "codesign --verify --deep --strict" ok "$cs"

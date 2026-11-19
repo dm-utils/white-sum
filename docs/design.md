@@ -1043,7 +1043,8 @@ redone for it.
 | `export_presets.cfg` | New preset `[preset.1]` "iOS" (16.3). The Web preset `[preset.0]` stays unchanged. |
 | `export/.gdignore` | New, empty: keeps the icon PNGs out of the import and therefore out of the Web export. |
 | `export/ios/icons/icon_<n>.png` | New: generated app icons (16.5), committed. |
-| `tools/ios_icons.gd` | New: icon generator (`extends SceneTree`, headless). |
+| `tools/ios_icons.gd` | New: icon and blank launch image generator (`extends SceneTree`, headless). |
+| `export/ios/blank.png` | New: transparent 64x64 launch image (16.6), committed. |
 | `tests/ios_tests.gd` | New: preset and icon checks (16.11 A), registered in the game's test runner. |
 | `.github/workflows/ios.yml` | New: the iOS workflow (16.8). Owned by the game, not from the kit template. |
 | `.github/workflows/ci.yml` | Only `MIN_CHECKS` raised by the new checks. |
@@ -1112,7 +1113,7 @@ Options (`[preset.1.options]`); options not listed keep Godot's default:
 | `icons/*` | `res://export/ios/icons/icon_<n>.png` with `n` = the option's size | 16.5. Every icon option the 4.7.2 preset offers is set (dark and tinted variants excepted). |
 | `storyboard/use_custom_bg_color` | true | 16.6. |
 | `storyboard/custom_bg_color` | `Color(0.106, 0.122, 0.149, 1)` (`#1B1F26`) | Same as `boot_splash/bg_color`. |
-| `storyboard/custom_image@2x`, `storyboard/custom_image@3x` | `""` | No launch image. |
+| `storyboard/custom_image@2x`, `storyboard/custom_image@3x` | `res://export/ios/blank.png` | Transparent 64x64 file (16.6). An empty option makes Godot write its own logo splash. |
 
 Minimum iOS version 16.0: runs on every iPhone from the iPhone 8 (2017) on, which covers the owner and the test group,
 and stays inside the deployment range of Xcode 26. If Godot 4.7.2's default `min_ios_version` is higher than 16.0, use
@@ -1180,8 +1181,9 @@ When `icon.svg` changes, run the tool and commit the PNGs; test A2 fails until t
   now; **[later]** with a tablet layout.
 - **Portrait only**: `display/window/handheld/orientation=1` gives `UISupportedInterfaceOrientations` =
   `UIInterfaceOrientationPortrait` only; no upside down.
-- **Launch screen**: Godot's generated storyboard with background `#1B1F26` and no image; the boot splash shows no
-  image on the same colour. From the tap on the icon to the first frame the screen is one dark colour: no white flash,
+- **Launch screen**: Godot's generated storyboard with background `#1B1F26`; the image view shows `export/ios/blank.png`,
+  a transparent 64x64 file written by `tools/ios_icons.gd` (an empty `custom_image` option would make Godot copy its
+  logo splash into `SplashImage.imageset`); the boot splash shows no image on the same colour. From the tap on the icon to the first frame the screen is one dark colour: no white flash,
   no Godot logo.
 - **Safe area**: the screen already uses the kit's `WhiteSafeArea` (`_use_safe_area()` true, 10.3), which reads
   `DisplayServer.get_display_safe_area()`; on an iPhone that excludes the notch or Dynamic Island and the home
@@ -1277,7 +1279,7 @@ Steps marked "signing" are skipped in the unsigned mode.
 | B5 | Archive | `xcodebuild archive -project build/ios/WhiteSum.xcodeproj -scheme WhiteSum -configuration Release -destination 'generic/platform=iOS' -archivePath build/ios/WhiteSum.xcarchive`, with signing: `CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=<team> CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER=<UUID> OTHER_CODE_SIGN_FLAGS="--keychain <keychain>"`; without signing: `CODE_SIGNING_ALLOWED=NO`. Output to `build/ios/archive.log`; on failure print its last 200 lines. If `xcodebuild -list` shows another scheme name, use that one and record it in 16.12. |
 | B6 | Export options (signing) | Write `build/ios/ExportOptions.plist` with `PlistBuddy`: `method` = `app-store-connect`, `teamID` = team, `signingStyle` = `manual`, `signingCertificate` = `Apple Distribution`, `provisioningProfiles` = dictionary {`nl.steefbeest.whitesum`: `<UUID>`}, `uploadSymbols` = true, `manageAppVersionAndBuildNumber` = false, `destination` = `export`. |
 | B7 | IPA (signing) | `xcodebuild -exportArchive -archivePath build/ios/WhiteSum.xcarchive -exportPath build/ios/export -exportOptionsPlist build/ios/ExportOptions.plist`, output to `build/ios/export.log`; exactly one `build/ios/export/*.ipa` must result. |
-| V | Verify | On the app bundle (from the IPA with signing, from `WhiteSum.xcarchive/Products/Applications/*.app` without), each item failing the job: `CFBundleIdentifier` = `nl.steefbeest.whitesum`; `CFBundleShortVersionString` and `CFBundleVersion` = E5's version and build; `CFBundleDisplayName` (or `CFBundleName` when absent) = `White Sum`; `MinimumOSVersion` = the value of 16.3; `UIDeviceFamily` = `[1]`; `UISupportedInterfaceOrientations` = `[UIInterfaceOrientationPortrait]`, and any `UISupportedInterfaceOrientations~ipad` holds nothing else; `ITSAppUsesNonExemptEncryption` = false; `CFBundleLocalizations` = `[en, nl]`; each of these keys occurs exactly once in the Info.plist (`plutil -convert xml1`, then count); a `PrivacyInfo.xcprivacy` exists with `NSPrivacyTracking` false and `NSPrivacyCollectedDataTypes` empty or absent; a `.pck` is inside the bundle; every PNG in the exported project's `AppIcon.appiconset` reports `hasAlpha: no` (`sips -g hasAlpha`) and one of them is 1024x1024. With signing also: `codesign --verify --deep --strict` passes; the entitlements (`codesign -d --entitlements -`) have `get-task-allow` false; the UUID of `embedded.mobileprovision` equals B4's. Results as a table in the summary. |
+| V | Verify | On the app bundle (from the IPA with signing, from `WhiteSum.xcarchive/Products/Applications/*.app` without), each item failing the job: `CFBundleIdentifier` = `nl.steefbeest.whitesum`; `CFBundleShortVersionString` and `CFBundleVersion` = E5's version and build; `CFBundleDisplayName` (or `CFBundleName` when absent) = `White Sum`; `MinimumOSVersion` = the value of 16.3; `UIDeviceFamily` = `[1]`; `UISupportedInterfaceOrientations` = `[UIInterfaceOrientationPortrait]`, and any `UISupportedInterfaceOrientations~ipad` holds nothing else; `ITSAppUsesNonExemptEncryption` = false; `CFBundleLocalizations` = `[en, nl]`; each of these keys occurs exactly once in the Info.plist (`plutil -convert xml1`, then count); a `PrivacyInfo.xcprivacy` exists with `NSPrivacyTracking` false and `NSPrivacyCollectedDataTypes` empty or absent; a `.pck` is inside the bundle; every PNG in the exported `SplashImage.imageset` is at most 64x64 and has alpha; every PNG in the exported project's `AppIcon.appiconset` reports `hasAlpha: no` (`sips -g hasAlpha`) and one of them is 1024x1024. With signing also: `codesign --verify --deep --strict` passes; the entitlements (`codesign -d --entitlements -`) have `get-task-allow` false; the UUID of `embedded.mobileprovision` equals B4's. Results as a table in the summary. |
 | U | Upload (signing and upload) | Write the `.p8` to `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8`; `xcrun altool --upload-app --type ios --file <ipa> --apiKey <ASC_KEY_ID> --apiIssuer <ASC_ISSUER_ID>`; a non-zero exit fails the job. Summary: `Uploaded White Sum <version> (<build>)`. Fallback if `--upload-app` no longer exists in the selected Xcode: set `destination` = `upload` in B6 and pass `-authenticationKeyPath <p8> -authenticationKeyID <id> -authenticationKeyIssuerID <issuer>` to B7; record the switch in 16.12. |
 | L | Logs on failure | `if: failure()`: upload `build/ios/*.log` as artifact `ios-logs`, retention 7 days (they hold no secrets). |
 | C | Cleanup | `if: always()`: `security delete-keychain <keychain>`; remove both installed profile copies, the `.p8`, the decoded `.p12` and profile files. |
@@ -1400,3 +1402,14 @@ Filled in 2026-11-19 from the local Linux spike (Godot 4.7.2, official templates
 - Godot prints "Property not found: application/boot_splash/fullsize" during the iOS export; harmless.
 - Unsigned run without the repository variable: `ios.yml` uses the placeholder team id `ABCDE12345` (Godot needs one);
   with signing it fails when `APPLE_TEAM_ID` is missing.
+- Launch image (review finding): with empty `storyboard/custom_image@2x|3x` Godot 4.7.2 writes its logo splash
+  (800x600) into `SplashImage.imageset`. Both options now point to `res://export/ios/blank.png` (transparent 64x64,
+  generated by `tools/ios_icons.gd`); the export then holds 64x64 transparent splash files. `tests/ios_tests.gd` checks
+  both options and that the file is up to date; the Verify step of `ios.yml` checks the exported splash PNGs.
+- Empty usage descriptions: Godot 4.7.2 always writes `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription` and
+  `NSMicrophoneUsageDescription` (empty strings when the `privacy/*_usage_description` options are empty); no option
+  omits them. Left as is; if App Store Connect warns on upload, the fix is a `plutil -remove` step on the exported
+  Info.plist before the archive.
+- `ios.yml` build job: `environment: testflight` is also used with signing=false, so the environment must exist with a
+  deployment rule for develop, main and `v*`. The profile expiry date is parsed with BSD `date -j`, verified on macOS
+  only.

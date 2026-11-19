@@ -61,6 +61,12 @@ func _preset_tests(cfg: ConfigFile) -> void:
 	_check.call(cfg.get_value(o, "storyboard/use_custom_bg_color") == true, "launch screen uses a custom colour")
 	var col: Color = cfg.get_value(o, "storyboard/custom_bg_color")
 	_check.call(_near(col, BG), "launch screen colour is #1B1F26")
+	var blank_ok := true
+	for key in ["storyboard/custom_image@2x", "storyboard/custom_image@3x"]:
+		var img := Image.load_from_file(str(cfg.get_value(o, key, "")))
+		blank_ok = blank_ok and img != null and img.get_width() <= IosIcons.BLANK_SIZE \
+				and img.get_height() <= IosIcons.BLANK_SIZE and _fully_clear(img)
+	_check.call(blank_ok, "both launch image options point to an existing small transparent file")
 	var icons_ok := true
 	var count := 0
 	var has_1024 := false
@@ -115,6 +121,16 @@ func _icon_tests() -> void:
 		var img := Image.load_from_file("%sicon_%d.png" % [ICON_DIR, n])
 		var want := IosIcons.render(n)
 		_check.call(img != null and img.get_data() == want.get_data(), "icon %d is up to date with icon.svg" % n)
+	var blank := Image.load_from_file(IosIcons.BLANK)
+	_check.call(blank != null and blank.get_data() == IosIcons.blank().get_data(), "blank launch image is up to date")
+
+
+func _fully_clear(img: Image) -> bool:
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.0:
+				return false
+	return true
 
 
 func _near(a: Color, b: Color) -> bool:

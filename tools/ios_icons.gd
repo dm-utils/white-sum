@@ -1,11 +1,14 @@
 extends SceneTree
 ## iOS app icons from icon.svg: godot --headless --path . -s res://tools/ios_icons.gd
 ## Opaque full squares (App Store rejects alpha); every size rendered from the svg, none scaled down.
+## Also the blank launch image: transparent, so the launch screen is the bare background colour.
 
 # 114, 128, 136, 192: options of the 4.7.2 preset that have no exact size otherwise
 const SIZES: Array[int] = [1024, 192, 180, 167, 152, 136, 128, 120, 114, 87, 80, 76, 60, 58, 40, 29, 20]
 const BG := Color("#1B1F26")
 const DIR := "res://export/ios/icons"
+const BLANK := "res://export/ios/blank.png"
+const BLANK_SIZE := 64
 
 
 static func render(n: int) -> Image:
@@ -19,6 +22,12 @@ static func render(n: int) -> Image:
 	return img
 
 
+static func blank() -> Image:
+	var img := Image.create(BLANK_SIZE, BLANK_SIZE, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	return img
+
+
 func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR))
 	for n in SIZES:
@@ -28,4 +37,6 @@ func _init() -> void:
 		if err != OK:
 			quit(1)
 			return
-	quit()
+	var err := blank().save_png(BLANK)
+	print("%s %s" % [BLANK, "ok" if err == OK else "error %d" % err])
+	quit(0 if err == OK else 1)
